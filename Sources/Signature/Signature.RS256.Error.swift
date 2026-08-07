@@ -30,8 +30,10 @@ extension Signature.RS256.Error {
         switch self {
         case .malformedKey:
             "the signing key is not an RSA private key the platform facility can import"
+
         case .unsupportedPlatform:
             "this platform has no signing facility reachable from this build"
+
         case .signing(let message): "cannot sign the message: \(message)"
         }
     }

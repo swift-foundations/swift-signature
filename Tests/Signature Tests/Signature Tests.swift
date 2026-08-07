@@ -5,7 +5,7 @@ import Testing
 @testable import Signature
 
 #if canImport(Security)
-import Security
+    import Security
 #endif
 
 extension Signature {
@@ -55,115 +55,115 @@ extension Signature {
             }
 
             #if canImport(Security)
-            @Test
-            func `refuses DER the platform facility cannot import`() {
-                #expect(throws: Signature.RS256.Error.malformedKey) {
-                    try Signature.RS256.sign(
-                        message: [Byte]("message".utf8),
-                        key: Signature.RSA.Key(der: [1, 2, 3].map { Byte(UInt8($0)) })
-                    )
+                @Test
+                func `refuses DER the platform facility cannot import`() {
+                    #expect(throws: Signature.RS256.Error.malformedKey) {
+                        try Signature.RS256.sign(
+                            message: [Byte]("message".utf8),
+                            key: Signature.RSA.Key(der: [1, 2, 3].map { Byte(UInt8($0)) })
+                        )
+                    }
                 }
-            }
             #else
-            @Test
-            func `reports the missing platform facility`() {
-                #expect(throws: Signature.RS256.Error.unsupportedPlatform) {
-                    try Signature.RS256.sign(
-                        message: [Byte]("message".utf8),
-                        key: Signature.RSA.Key(der: [])
-                    )
+                @Test
+                func `reports the missing platform facility`() {
+                    #expect(throws: Signature.RS256.Error.unsupportedPlatform) {
+                        try Signature.RS256.sign(
+                            message: [Byte]("message".utf8),
+                            key: Signature.RSA.Key(der: [])
+                        )
+                    }
                 }
-            }
             #endif
         }
 
         @Suite
         struct Integration {
             #if canImport(Security)
-            /// Behavioural-parity proof for the extraction: the digest-based
-            /// signing path (FIPS 180-4 SHA-256 +
-            /// `rsaSignatureDigestPKCS1v15SHA256`) must verify under the
-            /// *message-level* algorithm (`rsaSignatureMessagePKCS1v15SHA256`)
-            /// the pre-extraction implementation used — byte-identical
-            /// RSASSA-PKCS1-v1_5 output.
-            @Test
-            func `signs a message the platform facility verifies at message level`() throws {
-                var failure: Unmanaged<CFError>?
-                var bits = 2048
-                let size = unsafe CFNumberCreate(kCFAllocatorDefault, .intType, &bits)!
-                let attributes = try #require(
-                    Self.dictionary(
-                        keys: [kSecAttrKeyType, kSecAttrKeySizeInBits],
-                        values: [kSecAttrKeyTypeRSA, size]
+                /// Behavioural-parity proof for the extraction: the digest-based
+                /// signing path (FIPS 180-4 SHA-256 +
+                /// `rsaSignatureDigestPKCS1v15SHA256`) must verify under the
+                /// *message-level* algorithm (`rsaSignatureMessagePKCS1v15SHA256`)
+                /// the pre-extraction implementation used — byte-identical
+                /// RSASSA-PKCS1-v1_5 output.
+                @Test
+                func `signs a message the platform facility verifies at message level`() throws {
+                    var failure: Unmanaged<CFError>?
+                    var bits = 2048
+                    let size = unsafe CFNumberCreate(kCFAllocatorDefault, .intType, &bits)!
+                    let attributes = try #require(
+                        Self.dictionary(
+                            keys: [kSecAttrKeyType, kSecAttrKeySizeInBits],
+                            values: [kSecAttrKeyTypeRSA, size]
+                        )
                     )
-                )
-                let generated = try #require(
-                    unsafe SecKeyCreateRandomKey(attributes, &failure)
-                )
-                let exported = try #require(
-                    unsafe SecKeyCopyExternalRepresentation(generated, &failure)
-                )
-                let count = CFDataGetLength(exported)
-                var der = [Byte](repeating: 0, count: count)
-                der.withUnsafeMutableBufferPointer { buffer in
-                    guard let base = unsafe buffer.baseAddress else { return }
-                    unsafe CFDataGetBytes(exported, CFRangeMake(0, count), base)
+                    let generated = try #require(
+                        unsafe SecKeyCreateRandomKey(attributes, &failure)
+                    )
+                    let exported = try #require(
+                        unsafe SecKeyCopyExternalRepresentation(generated, &failure)
+                    )
+                    let count = CFDataGetLength(exported)
+                    var der = [Byte](repeating: 0, count: count)
+                    der.withUnsafeMutableBufferPointer { buffer in
+                        guard let base = unsafe buffer.baseAddress else { return }
+                        unsafe CFDataGetBytes(exported, CFRangeMake(0, count), base)
+                    }
+
+                    // Round-trip through the PEM armour GitHub hands out.
+                    let pem =
+                        "-----BEGIN RSA PRIVATE KEY-----\n"
+                        + der.base64.encoded()
+                        + "\n-----END RSA PRIVATE KEY-----"
+                    let key = try Signature.RSA.Key(pem: pem)
+                    #expect(key.der == der)
+
+                    let message = [Byte]("eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.claims".utf8)
+                    let signature = try Signature.RS256.sign(message: message, key: key)
+
+                    let publicKey = try #require(SecKeyCopyPublicKey(generated))
+                    let messageData = try #require(Self.data(message))
+                    let signatureData = try #require(Self.data(signature))
+                    let verified = unsafe SecKeyVerifySignature(
+                        publicKey,
+                        .rsaSignatureMessagePKCS1v15SHA256,
+                        messageData,
+                        signatureData,
+                        &failure
+                    )
+                    unsafe failure?.release()
+                    #expect(verified)
                 }
 
-                // Round-trip through the PEM armour GitHub hands out.
-                let pem =
-                    "-----BEGIN RSA PRIVATE KEY-----\n"
-                    + der.base64.encoded()
-                    + "\n-----END RSA PRIVATE KEY-----"
-                let key = try Signature.RSA.Key(pem: pem)
-                #expect(key.der == der)
-
-                let message = [Byte]("eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.claims".utf8)
-                let signature = try Signature.RS256.sign(message: message, key: key)
-
-                let publicKey = try #require(SecKeyCopyPublicKey(generated))
-                let messageData = try #require(Self.data(message))
-                let signatureData = try #require(Self.data(signature))
-                let verified = unsafe SecKeyVerifySignature(
-                    publicKey,
-                    .rsaSignatureMessagePKCS1v15SHA256,
-                    messageData,
-                    signatureData,
-                    &failure
-                )
-                unsafe failure?.release()
-                #expect(verified)
-            }
-
-            private static func data(_ bytes: [Byte]) -> CFData? {
-                bytes.withUnsafeBufferPointer { buffer in
-                    unsafe CFDataCreate(kCFAllocatorDefault, buffer.baseAddress, buffer.count)
+                private static func data(_ bytes: [Byte]) -> CFData? {
+                    bytes.withUnsafeBufferPointer { buffer in
+                        unsafe CFDataCreate(kCFAllocatorDefault, buffer.baseAddress, buffer.count)
+                    }
                 }
-            }
 
-            private static func dictionary(
-                keys: [CFString],
-                values: [CFTypeRef]
-            ) -> CFDictionary? {
-                var keyCallbacks = kCFTypeDictionaryKeyCallBacks
-                var valueCallbacks = kCFTypeDictionaryValueCallBacks
-                var keyPointers = unsafe keys.map {
-                    unsafe UnsafeRawPointer(Unmanaged.passUnretained($0).toOpaque())
-                        as UnsafeRawPointer?
+                private static func dictionary(
+                    keys: [CFString],
+                    values: [CFTypeRef]
+                ) -> CFDictionary? {
+                    var keyCallbacks = kCFTypeDictionaryKeyCallBacks
+                    var valueCallbacks = kCFTypeDictionaryValueCallBacks
+                    var keyPointers = unsafe keys.map {
+                        unsafe UnsafeRawPointer(Unmanaged.passUnretained($0).toOpaque())
+                            as UnsafeRawPointer?
+                    }
+                    var valuePointers = unsafe values.map {
+                        unsafe UnsafeRawPointer(Unmanaged.passUnretained($0).toOpaque())
+                            as UnsafeRawPointer?
+                    }
+                    return unsafe CFDictionaryCreate(
+                        kCFAllocatorDefault,
+                        &keyPointers,
+                        &valuePointers,
+                        keys.count,
+                        &keyCallbacks,
+                        &valueCallbacks
+                    )
                 }
-                var valuePointers = unsafe values.map {
-                    unsafe UnsafeRawPointer(Unmanaged.passUnretained($0).toOpaque())
-                        as UnsafeRawPointer?
-                }
-                return unsafe CFDictionaryCreate(
-                    kCFAllocatorDefault,
-                    &keyPointers,
-                    &valuePointers,
-                    keys.count,
-                    &keyCallbacks,
-                    &valueCallbacks
-                )
-            }
             #endif
         }
     }
