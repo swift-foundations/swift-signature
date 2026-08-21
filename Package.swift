@@ -2,13 +2,6 @@
 
 import PackageDescription
 
-// swift-signature — asymmetric message signing, RS256-first.
-//
-// SHA-2 is consumed by composing swift-standards/swift-fips-180-4, the
-// Institute's sole SHA-2 owner (ruling R37; ruling 4 of principal
-// amendment 3, swift-institute/.github#85). No hash arithmetic lives
-// here. The asymmetric primitive is the platform key facility, reached
-// only behind a platform condition.
 let package = Package(
     name: "swift-signature",
     platforms: [

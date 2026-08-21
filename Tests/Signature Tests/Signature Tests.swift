@@ -15,8 +15,7 @@ extension Signature {
         struct Unit {
             @Test
             func `peels the PKCS8 wrapper off an RSA private key`() throws {
-                // PrivateKeyInfo { version 0, AlgorithmIdentifier rsaEncryption,
-                // OCTET STRING { 0x01 0x02 0x03 } } — the structure, not a key.
+
                 let der: [UInt8] = [
                     0x30, 0x1B,
                     0x02, 0x01, 0x00,
@@ -32,7 +31,7 @@ extension Signature {
             @Test
             func `keeps PKCS1 armour bytes as they arrive`() throws {
                 let body: [UInt8] = [0x30, 0x03, 0x02, 0x01, 0x00]
-                let base64 = "MAMCAQA="  // the five bytes above
+                let base64 = "MAMCAQA="
                 let key = try Signature.RSA.Key(
                     pem: "-----BEGIN RSA PRIVATE KEY-----\n\(base64)\n-----END RSA PRIVATE KEY-----"
                 )
@@ -80,12 +79,7 @@ extension Signature {
         @Suite
         struct Integration {
             #if canImport(Security)
-                /// Behavioural-parity proof for the extraction: the digest-based
-                /// signing path (FIPS 180-4 SHA-256 +
-                /// `rsaSignatureDigestPKCS1v15SHA256`) must verify under the
-                /// *message-level* algorithm (`rsaSignatureMessagePKCS1v15SHA256`)
-                /// the pre-extraction implementation used — byte-identical
-                /// RSASSA-PKCS1-v1_5 output.
+
                 @Test
                 func `signs a message the platform facility verifies at message level`() throws {
                     var failure: Unmanaged<CFError>?
@@ -110,7 +104,6 @@ extension Signature {
                         unsafe CFDataGetBytes(exported, CFRangeMake(0, count), base)
                     }
 
-                    // Round-trip through the PEM armour GitHub hands out.
                     let pem =
                         "-----BEGIN RSA PRIVATE KEY-----\n"
                         + der.base64.encoded()
