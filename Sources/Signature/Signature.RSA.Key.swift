@@ -1,4 +1,4 @@
-public import Byte_Primitives
+public import Byte
 internal import RFC_4648
 
 extension Signature.RSA {

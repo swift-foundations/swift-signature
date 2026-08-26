@@ -19,7 +19,7 @@ let package = Package(
     ],
     dependencies: [
         .package(
-            url: "https://github.com/swift-primitives/swift-byte-primitives.git",
+            url: "https://github.com/swift-molecules/swift-byte.git",
             branch: "main"
         ),
         .package(url: "https://github.com/swift-ietf/swift-rfc-4648.git", branch: "main"),
@@ -29,7 +29,7 @@ let package = Package(
         .target(
             name: "Signature",
             dependencies: [
-                .product(name: "Byte Primitives", package: "swift-byte-primitives"),
+                .product(name: "Byte", package: "swift-byte"),
                 .product(name: "RFC 4648", package: "swift-rfc-4648"),
                 .product(name: "FIPS 180-4", package: "swift-fips-180-4"),
             ]
@@ -38,6 +38,7 @@ let package = Package(
             name: "Signature Tests",
             dependencies: [
                 .target(name: "Signature"),
+                .product(name: "Byte", package: "swift-byte"),
                 .product(name: "RFC 4648", package: "swift-rfc-4648"),
             ]
         ),

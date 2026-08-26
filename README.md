@@ -17,7 +17,7 @@ Two disciplines are load-bearing:
 
 ```swift
 dependencies: [
-    .package(url: "https://github.com/swift-foundations/swift-signature.git", branch: "main")
+    .package(url: "https://github.com/swift-compositions/swift-signature.git", branch: "main")
 ]
 ```
 
